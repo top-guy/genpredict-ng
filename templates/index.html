@@ -1,0 +1,157 @@
+{% extends 'base.html' %}
+{% block title %}GenPredict NG — Smart Generator Maintenance for Nigeria{% endblock %}
+
+{% block body %}
+<div class="landing">
+
+  <!-- ── Navigation ─────────────────────────────────────── -->
+  <nav class="landing-nav">
+    <div class="flex-gap gap-sm">
+      <div style="width:36px;height:36px;background:linear-gradient(135deg,var(--amber),var(--amber-dark));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;">⚡</div>
+      <div>
+        <div style="font-size:1rem;font-weight:800;color:var(--text);">GenPredict NG</div>
+        <div style="font-size:0.62rem;color:var(--amber);letter-spacing:1px;text-transform:uppercase;">Power Intelligence</div>
+      </div>
+    </div>
+    <div class="flex-gap">
+      <a href="{{ url_for('auth.login') }}" class="btn btn-ghost btn-sm">Login</a>
+      <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-sm">Get Started Free</a>
+    </div>
+  </nav>
+
+  <!-- ── Hero Section ───────────────────────────────────── -->
+  <section class="hero">
+    <div style="max-width:720px">
+      <div class="hero-badge">
+        🇳🇬 Built for Nigerian Households & Small Businesses
+      </div>
+
+      <h1>
+        Predict Generator Failures<br>
+        <span>Before They Happen</span>
+      </h1>
+
+      <p class="hero-subtitle">
+        GenPredict NG analyses your daily generator usage — fuel consumption, load levels,
+        fault occurrences and more — to compute a real-time health score and tell you exactly
+        when to service your generator. No IoT sensors. Just smart prediction.
+      </p>
+
+      <div class="flex-gap flex-center gap-md" style="flex-wrap:wrap;">
+        <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-lg pulse-amber" id="cta-register">
+          ⚡ Start Monitoring Free
+        </a>
+        <a href="{{ url_for('auth.login') }}" class="btn btn-ghost btn-lg" id="cta-login">
+          Sign In to Dashboard →
+        </a>
+      </div>
+
+      <!-- Mini stats -->
+      <div class="flex-gap flex-center gap-lg mt-28" style="flex-wrap:wrap;font-size:0.82rem;color:var(--text-muted);">
+        <div class="flex-gap gap-sm"><span class="text-emerald font-bold">✓</span> 3-Layer AI Prediction</div>
+        <div class="flex-gap gap-sm"><span class="text-emerald font-bold">✓</span> PDF & WhatsApp Reports</div>
+        <div class="flex-gap gap-sm"><span class="text-emerald font-bold">✓</span> Up to 2 Generators / Account</div>
+        <div class="flex-gap gap-sm"><span class="text-emerald font-bold">✓</span> No IoT Hardware Needed</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── How It Works ───────────────────────────────────── -->
+  <section style="padding:60px 48px;background:var(--bg);">
+    <div style="max-width:900px;margin:0 auto;">
+      <div class="text-center mb-28">
+        <h2>How the 3-Layer System Works</h2>
+        <p>From your daily inputs to actionable maintenance intelligence</p>
+      </div>
+
+      <div class="grid-3" style="gap:0;">
+        <div style="padding:28px;border-right:1px solid var(--border);position:relative;">
+          <div style="position:absolute;top:-12px;left:28px;background:var(--amber);color:var(--bg);font-weight:800;font-size:0.7rem;padding:3px 10px;border-radius:10px;">LAYER 1</div>
+          <div style="font-size:2rem;margin-bottom:12px;">📥</div>
+          <h3 class="text-amber">Raw Layer</h3>
+          <p style="font-size:0.83rem;margin-top:8px;">You log daily data: usage hours, load %, fuel consumed, faults, NEPA outage hours. Simple daily form entry runs in under 60 seconds.</p>
+          <div style="margin-top:16px;font-size:0.75rem;color:var(--text-muted);">
+            <div>• Daily usage hours (0–24)</div>
+            <div>• Load level % of KVA capacity</div>
+            <div>• Fuel consumed (litres)</div>
+            <div>• Fault type & count</div>
+            <div>• NEPA/PHCN outage hours</div>
+          </div>
+        </div>
+
+        <div style="padding:28px;border-right:1px solid var(--border);position:relative;">
+          <div style="position:absolute;top:-12px;left:28px;background:var(--blue);color:white;font-weight:800;font-size:0.7rem;padding:3px 10px;border-radius:10px;">LAYER 2</div>
+          <div style="font-size:2rem;margin-bottom:12px;">⚙️</div>
+          <h3 style="color:var(--blue);">Processing Layer</h3>
+          <p style="font-size:0.83rem;margin-top:8px;">Raw inputs are aggregated and transformed into 5 scientifically-derived health indicators — each measuring a different failure dimension.</p>
+          <div style="margin-top:16px;font-size:0.75rem;color:var(--text-muted);">
+            <div>• <strong style="color:var(--text)">UII</strong> — Usage Intensity Index</div>
+            <div>• <strong style="color:var(--text)">FER</strong> — Fuel Efficiency Ratio</div>
+            <div>• <strong style="color:var(--text)">MOS</strong> — Maintenance Overdue Score</div>
+            <div>• <strong style="color:var(--text)">AALS</strong> — Age-Adjusted Load Stress</div>
+            <div>• <strong style="color:var(--text)">FFR</strong> — Fault Frequency Rate</div>
+          </div>
+        </div>
+
+        <div style="padding:28px;position:relative;">
+          <div style="position:absolute;top:-12px;left:28px;background:var(--emerald);color:white;font-weight:800;font-size:0.7rem;padding:3px 10px;border-radius:10px;">LAYER 3</div>
+          <div style="font-size:2rem;margin-bottom:12px;">🔮</div>
+          <h3 style="color:var(--emerald);">Prediction Layer</h3>
+          <p style="font-size:0.83rem;margin-top:8px;">A weighted scoring algorithm produces a Composite Health Score (0–100) with risk classification and prioritised maintenance actions.</p>
+          <div style="margin-top:16px;font-size:0.75rem;">
+            <div><span style="color:var(--emerald);font-weight:700;">🟢 HEALTHY</span>  &nbsp;Score 75–100</div>
+            <div><span style="color:var(--amber);font-weight:700;">🟡 MODERATE</span> &nbsp;Score 50–75</div>
+            <div><span style="color:var(--orange);font-weight:700;">🟠 HIGH RISK</span> &nbsp;Score 25–50</div>
+            <div><span style="color:var(--red);font-weight:700;">🔴 CRITICAL</span>  &nbsp;Score 0–25</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Features ───────────────────────────────────────── -->
+  <div class="feature-grid">
+    <div class="feature-card">
+      <div class="feature-icon">🇳🇬</div>
+      <div class="feature-title">Built for Nigeria</div>
+      <div class="feature-desc">Includes NEPA/PHCN outage tracking, Nigerian generator brands (Sumec, Firman, Elepaq, Tiger, Mikano), and fuel pricing context in Naira.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📱</div>
+      <div class="feature-title">WhatsApp Report Sharing</div>
+      <div class="feature-desc">Share your generator health report via WhatsApp in one tap. Perfect for sending reports to your technician or business partner.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📄</div>
+      <div class="feature-title">PDF Health Reports</div>
+      <div class="feature-desc">Download professional PDF reports with full indicator breakdown, maintenance history, and prioritised recommendations.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔐</div>
+      <div class="feature-title">Secure Multi-User Access</div>
+      <div class="feature-desc">Each account is completely isolated. Manage up to 2 generators with dedicated dashboards, logs, and prediction histories per account.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📈</div>
+      <div class="feature-title">Health Trend Tracking</div>
+      <div class="feature-desc">Track your generator's health score over time with visual trend charts. Know if your maintenance efforts are working.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">⚡</div>
+      <div class="feature-title">Works Offline (Input)</div>
+      <div class="feature-desc">Record observations on paper and log them later. No real-time internet connection required for daily data entry — batch upload when connected.</div>
+    </div>
+  </div>
+
+  <!-- ── CTA Footer ──────────────────────────────────────── -->
+  <section style="padding:60px 48px;text-align:center;background:var(--bg-1);border-top:1px solid var(--border);">
+    <h2>Stop Waiting for Breakdowns. Start Predicting.</h2>
+    <p style="max-width:480px;margin:12px auto 28px;">Join generator owners across Nigeria who use GenPredict NG to save on emergency repairs and reduce downtime.</p>
+    <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-lg" id="cta-bottom">
+      Create Free Account →
+    </a>
+    <div style="margin-top:20px;font-size:0.78rem;color:var(--text-dim);">Free forever • No credit card • No IoT hardware</div>
+  </section>
+
+</div>
+{% endblock %}

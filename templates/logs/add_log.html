@@ -1,0 +1,230 @@
+{% extends 'app_shell.html' %}
+{% block title %}Add Daily Log — {{ gen.name }} — GenPredict NG{% endblock %}
+{% block page_title %}Daily Log Entry{% endblock %}
+{% block page_subtitle %}Record today's operating data for {{ gen.name }}{% endblock %}
+
+{% block content %}
+<div style="max-width:700px;">
+
+  <!-- Context card -->
+  <div class="alert-banner info mb-20">
+    <span class="alert-icon">💡</span>
+    <div>
+      <div class="alert-title">Recording for: {{ gen.name }} ({{ gen.kva_rating }} KVA {{ gen.fuel_type }})</div>
+      <div class="alert-body">Log each day's operation. The more entries you have, the more accurate your health prediction becomes. Takes less than 60 seconds!</div>
+    </div>
+  </div>
+
+  <div class="card card-glass">
+    <div class="card-header">
+      <h3>📝 {{ gen.name }} — Daily Log</h3>
+    </div>
+
+    <div class="card-body">
+      <form method="POST" action="{{ url_for('main.add_log', gen_id=gen.id) }}" id="log-form">
+
+        <!-- Date -->
+        <div class="form-group">
+          <label class="form-label" for="log_date">Date <span class="required">*</span></label>
+          <input type="date" id="log_date" name="log_date" class="form-control"
+                 value="{{ today }}" max="{{ today }}" required>
+          <div class="form-hint">Date for this log entry — cannot be in the future</div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- Usage Hours -->
+        <div class="form-group">
+          <label class="form-label" for="usage_hours">
+            Daily Usage Hours <span class="required">*</span>
+            <span class="slider-value" id="usage-display">0</span>
+          </label>
+          <input type="range" id="usage_hours_slider" class="form-range"
+                 min="0" max="24" step="0.5" value="8"
+                 data-label="usage-display" data-suffix="h">
+          <input type="hidden" id="usage_hours" name="usage_hours" value="8">
+          <div class="flex-between mt-4" style="font-size:0.72rem;color:var(--text-dim);">
+            <span>0h (off)</span>
+            <span>12h</span>
+            <span>24h (full day)</span>
+          </div>
+          <div class="form-hint" id="usage-context">How many hours did the generator run today?</div>
+        </div>
+
+        <!-- Load Level -->
+        <div class="form-group">
+          <label class="form-label" for="load_level_slider">
+            Load Level <span class="required">*</span>
+            <span class="slider-value" id="load-display">50</span>
+          </label>
+          <input type="range" id="load_level_slider" class="form-range"
+                 min="0" max="100" step="5" value="50"
+                 data-label="load-display" data-suffix="%">
+          <input type="hidden" id="load_level" name="load_level" value="50">
+          <div class="flex-between mt-4" style="font-size:0.72rem;color:var(--text-dim);">
+            <span>0% (idle)</span>
+            <span>50%</span>
+            <span>100% (full load)</span>
+          </div>
+          <div id="load-help" class="form-hint">What % of your {{ gen.kva_rating }} KVA capacity are you using?</div>
+          <div id="load-guide" class="mt-8" style="font-size:0.78rem;padding:10px 12px;background:var(--surface);border-radius:var(--radius-sm);display:none;"></div>
+        </div>
+
+        <!-- Fuel Consumed -->
+        <div class="form-group">
+          <label class="form-label" for="fuel_consumed">
+            Fuel Consumed (litres) <span class="required">*</span>
+          </label>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <input type="number" id="fuel_consumed" name="fuel_consumed" class="form-control"
+                   placeholder="e.g. 8.5" required min="0" max="500" step="0.1"
+                   style="max-width:200px;">
+            <span class="text-muted text-sm">litres of {{ gen.fuel_type }}</span>
+          </div>
+          <div class="form-hint" id="fuel-expected"></div>
+        </div>
+
+        <!-- NEPA Outage -->
+        <div class="form-group">
+          <label class="form-label" for="nepa_outage_hours">
+            NEPA / PHCN Outage Hours
+            <span class="slider-value" id="nepa-display">0</span>
+          </label>
+          <input type="range" id="nepa_slider" class="form-range"
+                 min="0" max="24" step="0.5" value="0"
+                 data-label="nepa-display" data-suffix="h">
+          <input type="hidden" id="nepa_outage_hours" name="nepa_outage_hours" value="0">
+          <div class="form-hint">How many hours was NEPA / public power unavailable today?</div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- Fault Occurrences -->
+        <div class="form-group">
+          <label class="form-label">Fault Occurrences Today</label>
+          <div class="flex-gap gap-md" style="margin-bottom:12px;">
+            <button type="button" id="fault-decrease" class="btn btn-ghost btn-sm" disabled>−</button>
+            <span id="fault-display" style="font-size:2rem;font-weight:800;font-family:var(--mono);min-width:40px;text-align:center;color:var(--text);">0</span>
+            <button type="button" id="fault-increase" class="btn btn-ghost btn-sm">+</button>
+            <input type="hidden" id="fault_count" name="fault_count" value="0">
+            <span class="text-sm text-muted" style="margin-left:4px;">faults recorded</span>
+          </div>
+        </div>
+
+        <!-- Fault Types (shown if fault_count > 0) -->
+        <div class="form-group" id="fault-types-section" style="display:none;">
+          <label class="form-label">Fault Types (select all that apply)</label>
+          <div class="check-grid">
+            {% for ft in fault_types %}
+            <label class="check-item">
+              <input type="checkbox" name="fault_types" value="{{ ft }}">
+              {{ ft }}
+            </label>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Notes -->
+        <div class="form-group">
+          <label class="form-label" for="notes">Notes / Observations</label>
+          <textarea id="notes" name="notes" class="form-control" rows="3"
+                    placeholder="Any issues, sounds, smells, or observations about the generator today..."></textarea>
+        </div>
+
+        <div class="flex-gap gap-md">
+          <button type="submit" class="btn btn-primary btn-lg" id="btn-save-log">
+            📝 Save Log Entry
+          </button>
+          <a href="{{ url_for('main.generator_detail', gen_id=gen.id) }}" class="btn btn-ghost">Cancel</a>
+        </div>
+
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+const KVA    = {{ gen.kva_rating }};
+const FUEL   = '{{ gen.fuel_type }}';
+const SFC    = FUEL === 'Petrol' ? 0.45 : FUEL.includes('Gas') ? 0.30 : 0.35;
+
+// Sync sliders with hidden inputs
+function syncSlider(sliderId, hiddenId, displayId) {
+  const slider  = document.getElementById(sliderId);
+  const hidden  = document.getElementById(hiddenId);
+  const display = document.getElementById(displayId);
+  if (!slider) return;
+  slider.addEventListener('input', () => {
+    hidden.value = slider.value;
+    updateFuelHint();
+  });
+}
+
+syncSlider('usage_hours_slider', 'usage_hours', 'usage-display');
+syncSlider('load_level_slider', 'load_level', 'load-display');
+syncSlider('nepa_slider', 'nepa_outage_hours', 'nepa-display');
+
+// Usage context hint
+document.getElementById('usage_hours_slider').addEventListener('input', function() {
+  const h = parseFloat(this.value);
+  const ctx = document.getElementById('usage-context');
+  if (h === 0) ctx.textContent = 'Generator was off today.';
+  else if (h <= 6) ctx.textContent = `${h} hours — light daily use.`;
+  else if (h <= 12) ctx.textContent = `${h} hours — moderate use.`;
+  else if (h <= 18) ctx.textContent = `${h} hours — heavy use, ensure regular cool-down.`;
+  else ctx.textContent = `${h} hours — near maximum! Increase service frequency.`;
+});
+
+// Load guide
+document.getElementById('load_level_slider').addEventListener('input', function() {
+  const pct = parseInt(this.value);
+  const kw = (KVA * 0.8 * pct / 100).toFixed(1);
+  const guide = document.getElementById('load-guide');
+  const tips = {
+    r: pct < 30 ? 'Low load — ideal for gen longevity.' :
+       pct < 60 ? 'Moderate load — optimal efficiency range.' :
+       pct < 85 ? 'High load — monitor temperature closely.' :
+                  '⚠️ Very high load — risk of overheating on older generators!',
+    kw,
+  };
+  guide.textContent = `≈ ${tips.kw} kW actual output. ${tips.r}`;
+  guide.style.display = 'block';
+  guide.style.color = pct >= 85 ? 'var(--orange)' : pct >= 60 ? 'var(--amber)' : 'var(--emerald)';
+});
+
+// Fuel expected hint
+function updateFuelHint() {
+  const hours = parseFloat(document.getElementById('usage_hours_slider').value) || 0;
+  const load  = parseInt(document.getElementById('load_level_slider').value) || 50;
+  const kw   = KVA * 0.8 * (load / 100);
+  const expected = (kw * hours * SFC).toFixed(1);
+  const hint = document.getElementById('fuel-expected');
+  if (hours > 0) {
+    hint.textContent = `Expected consumption for your ${KVA} KVA gen at ${load}% load for ${hours}h ≈ ${expected}L`;
+  }
+}
+updateFuelHint();
+document.getElementById('usage_hours_slider').addEventListener('input', updateFuelHint);
+document.getElementById('load_level_slider').addEventListener('input', updateFuelHint);
+
+// Fault types toggle
+document.getElementById('fault-increase').addEventListener('click', () => {
+  const count = parseInt(document.getElementById('fault_count').value) || 0;
+  const newCount = count + 1;
+  document.getElementById('fault_count').value = newCount;
+  document.getElementById('fault-display').textContent = newCount;
+  document.getElementById('fault-decrease').disabled = false;
+  if (newCount > 0) document.getElementById('fault-types-section').style.display = 'block';
+});
+
+document.getElementById('fault-decrease').addEventListener('click', () => {
+  const count = parseInt(document.getElementById('fault_count').value) || 0;
+  if (count <= 0) return;
+  const newCount = count - 1;
+  document.getElementById('fault_count').value = newCount;
+  document.getElementById('fault-display').textContent = newCount;
+  document.getElementById('fault-decrease').disabled = newCount <= 0;
+  if (newCount === 0) document.getElementById('fault-types-section').style.display = 'none';
+});
+</script>
+{% endblock %}

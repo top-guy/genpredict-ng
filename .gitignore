@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+env.bak/
+venv.bak/
+
+# Environment Variables
+.env
+.env.local
+
+# Databases
+*.db
+*.sqlite3
+instance/
+
+# OS generated
+.DS_Store
+Thumbs.db
+
+# Render environment
+.render/
+
+# Models
+# Note: we are pushing the training script but whether we push the models is up to user.
+# For Render, since training takes time, we SHOULD push the models!
+# So we WILL NOT ignore model/ directory.

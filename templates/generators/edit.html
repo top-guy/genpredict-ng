@@ -1,0 +1,68 @@
+{% extends 'app_shell.html' %}
+{% block title %}Edit {{ gen.name }} — GenPredict NG{% endblock %}
+{% block page_title %}Edit Generator{% endblock %}
+{% block page_subtitle %}Update details for {{ gen.name }}{% endblock %}
+
+{% block content %}
+<div style="max-width:680px;">
+  <div class="card">
+    <div class="card-header"><h3>✏️ Edit Generator Details</h3></div>
+    <div class="card-body">
+      <form method="POST" action="{{ url_for('main.edit_generator', gen_id=gen.id) }}" id="edit-gen-form">
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label" for="name">Generator Name <span class="required">*</span></label>
+            <input type="text" id="name" name="name" class="form-control"
+                   value="{{ gen.name }}" required maxlength="100">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="kva_rating">KVA Rating <span class="required">*</span></label>
+            <input type="number" id="kva_rating" name="kva_rating" class="form-control"
+                   value="{{ gen.kva_rating }}" required min="0.5" max="5000" step="0.5">
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label" for="make">Brand / Make</label>
+            <select id="make" name="make" class="form-control">
+              <option value="">Select brand...</option>
+              {% for brand in brands %}
+              <option value="{{ brand }}" {% if gen.make == brand %}selected{% endif %}>{{ brand }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="model">Model</label>
+            <input type="text" id="model" name="model" class="form-control"
+                   value="{{ gen.model or '' }}" maxlength="80">
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label" for="fuel_type">Fuel Type</label>
+            <select id="fuel_type" name="fuel_type" class="form-control">
+              {% for ft in fuel_types %}
+              <option value="{{ ft }}" {% if gen.fuel_type == ft %}selected{% endif %}>{{ ft }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="purchase_year">Year of Purchase</label>
+            <input type="number" id="purchase_year" name="purchase_year" class="form-control"
+                   value="{{ gen.purchase_year or '' }}" min="1990" max="2026">
+          </div>
+        </div>
+
+        <div class="flex-gap gap-md">
+          <button type="submit" class="btn btn-primary" id="btn-update-gen">✏️ Update Generator</button>
+          <a href="{{ url_for('main.generator_detail', gen_id=gen.id) }}" class="btn btn-ghost">Cancel</a>
+        </div>
+
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

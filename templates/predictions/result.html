@@ -1,0 +1,234 @@
+{% extends 'app_shell.html' %}
+{% block title %}Prediction Result — {{ gen.name }} — GenPredict NG{% endblock %}
+{% block page_title %}Health Prediction{% endblock %}
+{% block page_subtitle %}3-Layer analysis for {{ gen.name }} — {{ pred.computed_at.strftime('%d %B %Y, %H:%M') }} UTC{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('main.download_pdf_report', gen_id=gen.id) }}" class="btn btn-ghost btn-sm" id="btn-pdf">📄 PDF Report</a>
+<a href="{{ wa_link }}" class="btn btn-whatsapp btn-sm" target="_blank" id="btn-wa">📲 WhatsApp Share</a>
+{% endblock %}
+
+{% block content %}
+
+<!-- ═══ HERO SCORE SECTION ═══════════════════════════════════ -->
+<div class="card card-glass mb-20">
+  <div class="card-body">
+    <div class="grid-2" style="align-items:center;gap:32px;">
+
+      <!-- Left: Gauge -->
+      <div class="text-center">
+        <div style="position:relative;width:200px;height:110px;margin:0 auto;">
+          <canvas id="healthGauge" width="200" height="110"
+                  data-score="{{ pred.health_score }}"
+                  data-risk="{{ pred.risk_level }}"></canvas>
+          <div class="health-score-text" style="top:62%">
+            <div id="healthScoreNum" class="score-number"
+                 style="font-size:2.8rem;color:{% if pred.risk_level=='HEALTHY' %}var(--emerald){% elif pred.risk_level=='MODERATE' %}var(--amber){% elif pred.risk_level=='HIGH RISK' %}var(--orange){% else %}var(--red){% endif %};">0</div>
+            <div class="score-label">/100</div>
+          </div>
+        </div>
+        <div class="mt-12">
+          {% if pred.risk_level == 'HEALTHY' %}
+          <span class="badge badge-healthy" style="font-size:1rem;padding:8px 20px;">🟢 HEALTHY</span>
+          {% elif pred.risk_level == 'MODERATE' %}
+          <span class="badge badge-moderate" style="font-size:1rem;padding:8px 20px;">🟡 MODERATE</span>
+          {% elif pred.risk_level == 'HIGH RISK' %}
+          <span class="badge badge-high" style="font-size:1rem;padding:8px 20px;">🟠 HIGH RISK</span>
+          {% else %}
+          <span class="badge badge-critical" style="font-size:1rem;padding:8px 20px;animation:pulse-amber 1.5s infinite;">🔴 CRITICAL</span>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Right: Summary -->
+      <div>
+        <h2>{{ gen.name }}</h2>
+        <p class="text-sm text-muted">{{ gen.kva_rating }} KVA {{ gen.fuel_type }} • {{ gen.make or '—' }} • {{ gen.age_years }} yr old</p>
+
+        <div class="countdown-card mt-12">
+          <div class="countdown-number">
+            {% if pred.days_to_service == 0 %}NOW{% else %}{{ pred.days_to_service }}{% endif %}
+          </div>
+          <div class="countdown-label">
+            {% if pred.days_to_service == 0 %}Service overdue — Immediate action required{% else %}Days until recommended next service{% endif %}
+          </div>
+        </div>
+
+        <div class="flex-gap gap-md mt-12" style="flex-wrap:wrap;font-size:0.83rem;">
+          <div class="text-muted">Based on <strong class="text-amber">{{ pred.logs_used }}</strong> log entries</div>
+          <div class="text-muted">Model: <strong class="text-amber">{{ pred.model_used or 'Weighted Formula' }}</strong></div>
+          <div class="text-muted">Computed at {{ pred.computed_at.strftime('%H:%M UTC') }}</div>
+        </div>
+
+        <div class="flex-gap gap-md mt-12" style="flex-wrap:wrap;">
+          <a href="{{ url_for('main.download_pdf_report', gen_id=gen.id) }}" class="btn btn-ghost btn-sm">📄 Download PDF</a>
+          <a href="{{ wa_link }}" class="btn btn-whatsapp btn-sm" target="_blank">📲 Share on WhatsApp</a>
+          <a href="{{ url_for('main.add_log', gen_id=gen.id) }}" class="btn btn-ghost btn-sm">📝 Log Another Day</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ═══ LAYER 2: PROCESSING — INDICATORS ════════════════════ -->
+<div class="card mb-20">
+  <div class="card-header">
+    <h3>⚙️ Layer 2 — Processing: Health Indicators</h3>
+    <span class="badge badge-info" style="font-size:0.7rem;">5 Indicators Computed</span>
+  </div>
+  <div class="card-body">
+    <div class="indicator-grid">
+
+      <!-- UII -->
+      {% set uii = pred.uii %}
+      {% set uii_pct = (uii * 100)|round(1) %}
+      <div class="indicator-card">
+        <div class="indicator-name">Usage Intensity Index</div>
+        <div class="indicator-value {% if uii < 0.7 %}ind-good{% elif uii < 0.85 %}ind-warning{% else %}ind-critical{% endif %}">
+          {{ '%.3f'|format(uii) }}
+        </div>
+        <div class="indicator-desc">{{ uii_pct }}% of max daily capacity in use</div>
+        <div class="indicator-bar">
+          <div class="indicator-bar-fill" data-fill="{{ uii_pct }}"
+               style="background:{% if uii < 0.7 %}var(--emerald){% elif uii < 0.85 %}var(--amber){% else %}var(--red){% endif %};width:0;"></div>
+        </div>
+      </div>
+
+      <!-- FER -->
+      {% set fer = pred.fer %}
+      {% set fer_pct = [((fer - 1) * 100)|round(1), 100]|min %}
+      <div class="indicator-card">
+        <div class="indicator-name">Fuel Efficiency Ratio</div>
+        <div class="indicator-value {% if fer <= 1.1 %}ind-good{% elif fer <= 1.25 %}ind-warning{% elif fer <= 1.5 %}ind-danger{% else %}ind-critical{% endif %}">
+          {{ '%.3f'|format(fer) }}
+        </div>
+        <div class="indicator-desc">
+          {% if fer <= 1.0 %}Fuel consumption within expected range ✓
+          {% else %}{{ ((fer - 1) * 100)|round(0)|int }}% over expected consumption{% endif %}
+        </div>
+        <div class="indicator-bar">
+          <div class="indicator-bar-fill" data-fill="{{ [((fer - 1) * 100 * 2), 100]|min }}"
+               style="background:{% if fer <= 1.1 %}var(--emerald){% elif fer <= 1.25 %}var(--amber){% elif fer <= 1.5 %}var(--orange){% else %}var(--red){% endif %};width:0;"></div>
+        </div>
+      </div>
+
+      <!-- MOS -->
+      {% set mos = pred.mos %}
+      <div class="indicator-card">
+        <div class="indicator-name">Maintenance Overdue Score</div>
+        <div class="indicator-value {% if mos < 0.7 %}ind-good{% elif mos < 1.0 %}ind-warning{% elif mos < 1.5 %}ind-danger{% else %}ind-critical{% endif %}">
+          {{ '%.3f'|format(mos) }}
+        </div>
+        <div class="indicator-desc">
+          {% if mos < 0.7 %}Recently serviced — great ✓
+          {% elif mos < 1.0 %}Approaching service interval
+          {% elif mos < 1.5 %}Service is overdue!
+          {% else %}Critically overdue — immediate service!{% endif %}
+        </div>
+        <div class="indicator-bar">
+          <div class="indicator-bar-fill" data-fill="{{ [(mos * 70)|round(0), 100]|min }}"
+               style="background:{% if mos < 0.7 %}var(--emerald){% elif mos < 1.0 %}var(--amber){% elif mos < 1.5 %}var(--orange){% else %}var(--red){% endif %};width:0;"></div>
+        </div>
+      </div>
+
+      <!-- AALS -->
+      {% set aals = pred.aals %}
+      <div class="indicator-card">
+        <div class="indicator-name">Age-Adjusted Load Stress</div>
+        <div class="indicator-value {% if aals < 0.35 %}ind-good{% elif aals < 0.6 %}ind-warning{% elif aals < 0.85 %}ind-danger{% else %}ind-critical{% endif %}">
+          {{ '%.3f'|format(aals) }}
+        </div>
+        <div class="indicator-desc">
+          {% if aals < 0.35 %}Low stress — ideal conditions
+          {% elif aals < 0.6 %}Moderate stress
+          {% elif aals < 0.85 %}High stress for a {{ gen.age_years }}-year-old generator
+          {% else %}Very high stress — reduce load!{% endif %}
+        </div>
+        <div class="indicator-bar">
+          <div class="indicator-bar-fill" data-fill="{{ [(aals * 100)|round(0), 100]|min }}"
+               style="background:{% if aals < 0.35 %}var(--emerald){% elif aals < 0.6 %}var(--amber){% elif aals < 0.85 %}var(--orange){% else %}var(--red){% endif %};width:0;"></div>
+        </div>
+      </div>
+
+      <!-- FFR -->
+      {% set ffr = pred.ffr %}
+      <div class="indicator-card">
+        <div class="indicator-name">Fault Frequency Rate</div>
+        <div class="indicator-value {% if ffr == 0 %}ind-good{% elif ffr < 0.1 %}ind-good{% elif ffr < 0.3 %}ind-warning{% elif ffr < 0.5 %}ind-danger{% else %}ind-critical{% endif %}">
+          {{ '%.3f'|format(ffr) }}
+        </div>
+        <div class="indicator-desc">{{ '%.3f'|format(ffr) }} faults per day (last 30 days)
+          {% if ffr == 0 %} — No faults recorded ✓{% endif %}</div>
+        <div class="indicator-bar">
+          <div class="indicator-bar-fill" data-fill="{{ [(ffr * 200)|round(0), 100]|min }}"
+               style="background:{% if ffr < 0.1 %}var(--emerald){% elif ffr < 0.3 %}var(--amber){% elif ffr < 0.5 %}var(--orange){% else %}var(--red){% endif %};width:0;"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Weighting legend -->
+    <div class="mt-20 text-center text-xs text-muted">
+      Indicator weights: FER 25% • MOS 25% • UII 20% • AALS 15% • FFR 15% → Composite Health Score
+    </div>
+  </div>
+</div>
+
+<!-- ═══ LAYER 3: PREDICTIONS — RECOMMENDATIONS ══════════════ -->
+<div class="card mb-20">
+  <div class="card-header">
+    <h3>🔮 Layer 3 — Prioritised Maintenance Recommendations</h3>
+    <span class="badge {% if pred.risk_level == 'HEALTHY' %}badge-healthy{% elif pred.risk_level == 'MODERATE' %}badge-moderate{% elif pred.risk_level == 'HIGH RISK' %}badge-high{% else %}badge-critical{% endif %}">
+      {{ recs|length }} action{% if recs|length != 1 %}s{% endif %}
+    </span>
+  </div>
+  <div class="card-body">
+    {% for rec in recs %}
+    <div class="rec-card {{ rec.priority }}" style="animation-delay:{{ loop.index0 * 0.08 }}s;">
+      <div class="rec-icon">{{ rec.icon }}</div>
+      <div class="rec-body">
+        <div class="rec-action">{{ rec.action }}</div>
+        <div class="rec-reason">{{ rec.reason }}</div>
+        <div class="mt-4">
+          <span class="badge
+            {% if rec.priority == 'critical' %}badge-critical
+            {% elif rec.priority == 'high' %}badge-high
+            {% elif rec.priority == 'medium' %}badge-moderate
+            {% elif rec.priority == 'low' %}badge-healthy
+            {% else %}badge-info{% endif %}"
+            style="font-size:0.6rem;">
+            {{ rec.priority|upper }} PRIORITY
+          </span>
+          <span class="text-xs text-muted" style="margin-left:6px;">{{ rec.category }}</span>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- ═══ REPORT ACTIONS ═══════════════════════════════════════ -->
+<div class="card">
+  <div class="card-header"><h3>📤 Share This Report</h3></div>
+  <div class="card-body">
+    <div class="grid-2">
+      <div style="text-align:center;padding:20px;background:var(--surface);border-radius:var(--radius);">
+        <div style="font-size:2.5rem;margin-bottom:8px;">📄</div>
+        <h4>Download PDF</h4>
+        <p class="text-sm">Full report with indicators, history & recommendations</p>
+        <a href="{{ url_for('main.download_pdf_report', gen_id=gen.id) }}"
+           class="btn btn-primary mt-12" id="btn-pdf-bottom">Download PDF Report</a>
+      </div>
+      <div style="text-align:center;padding:20px;background:rgba(37,211,102,0.05);border:1px solid rgba(37,211,102,0.15);border-radius:var(--radius);">
+        <div style="font-size:2.5rem;margin-bottom:8px;">📲</div>
+        <h4>Share via WhatsApp</h4>
+        <p class="text-sm">Send health summary directly to your technician or partner</p>
+        <a href="{{ wa_link }}" target="_blank"
+           class="btn btn-whatsapp mt-12" id="btn-wa-bottom">📲 Open in WhatsApp</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

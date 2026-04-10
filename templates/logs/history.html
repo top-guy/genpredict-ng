@@ -1,0 +1,97 @@
+{% extends 'app_shell.html' %}
+{% block title %}Log History — {{ gen.name }} — GenPredict NG{% endblock %}
+{% block page_title %}Log History{% endblock %}
+{% block page_subtitle %}All daily entries for {{ gen.name }}{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('main.add_log', gen_id=gen.id) }}" class="btn btn-primary btn-sm">📝 Add Log</a>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h3>📋 {{ gen.name }} — Daily Logs</h3>
+    <span class="text-sm text-muted">{{ logs.total }} total entries</span>
+  </div>
+
+  {% if logs.items %}
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Usage Hrs</th>
+          <th>Load %</th>
+          <th>Fuel (L)</th>
+          <th>NEPA Hrs</th>
+          <th>Faults</th>
+          <th>Fault Types</th>
+          <th>Notes</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for log in logs.items %}
+        <tr>
+          <td class="font-bold">{{ log.log_date.strftime('%d %b %Y') }}</td>
+          <td>{{ log.usage_hours }}h</td>
+          <td>
+            <span style="color:{% if log.load_level < 60 %}var(--emerald){% elif log.load_level < 80 %}var(--amber){% else %}var(--red){% endif %};">
+              {{ log.load_level }}%
+            </span>
+          </td>
+          <td>{{ log.fuel_consumed }}L</td>
+          <td class="text-muted">{{ log.nepa_outage_hours }}h</td>
+          <td>
+            {% if log.fault_count > 0 %}
+            <span class="badge badge-high" style="font-size:0.65rem;">{{ log.fault_count }}</span>
+            {% else %}<span class="text-emerald">0</span>{% endif %}
+          </td>
+          <td class="text-sm text-muted">{{ log.fault_types or '—' }}</td>
+          <td class="text-sm text-muted" style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+            {{ log.notes or '—' }}</td>
+          <td>
+            <form method="POST"
+                  action="{{ url_for('main.delete_log', gen_id=gen.id, log_id=log.id) }}"
+                  data-confirm="Delete log entry for {{ log.log_date }}?">
+              <button type="submit" class="btn btn-ghost btn-sm" style="color:var(--red);padding:4px 8px;">✕</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  {% if logs.pages > 1 %}
+  <div class="pagination">
+    {% if logs.has_prev %}
+    <a href="{{ url_for('main.log_history', gen_id=gen.id, page=logs.prev_num) }}" class="page-link">← Prev</a>
+    {% endif %}
+    {% for p in logs.iter_pages(left_edge=2, right_edge=2, left_current=2, right_current=2) %}
+      {% if p %}
+      <a href="{{ url_for('main.log_history', gen_id=gen.id, page=p) }}"
+         class="page-link {% if p == logs.page %}active{% endif %}">{{ p }}</a>
+      {% else %}
+      <span class="page-link" style="cursor:default;">…</span>
+      {% endif %}
+    {% endfor %}
+    {% if logs.has_next %}
+    <a href="{{ url_for('main.log_history', gen_id=gen.id, page=logs.next_num) }}" class="page-link">Next →</a>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% else %}
+  <div class="card-body">
+    <div class="empty-state">
+      <div class="empty-icon">📋</div>
+      <h3>No log entries yet</h3>
+      <p>Start logging daily data to build your prediction history.</p>
+      <a href="{{ url_for('main.add_log', gen_id=gen.id) }}" class="btn btn-primary">📝 Add First Log</a>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

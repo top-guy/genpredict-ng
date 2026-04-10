@@ -1,0 +1,243 @@
+{% extends 'app_shell.html' %}
+{% block title %}Dashboard — GenPredict NG{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block page_subtitle %}Generator fleet overview & health summary{% endblock %}
+
+{% block topbar_actions %}
+  {% if current_user.can_add_generator() %}
+  <a href="{{ url_for('main.add_generator') }}" class="btn btn-primary btn-sm" id="btn-add-gen">
+    ➕ Add Generator
+  </a>
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+
+{% if not gen_cards %}
+<!-- ── Empty State ──────────────────────────────────────── -->
+<div class="empty-state">
+  <div class="empty-icon">⚡</div>
+  <h3>No generators yet</h3>
+  <p>Add your first generator to start tracking its health and getting predictions.</p>
+  <a href="{{ url_for('main.add_generator') }}" class="btn btn-primary btn-lg" id="btn-first-gen">
+    ➕ Add Your First Generator
+  </a>
+</div>
+
+{% else %}
+
+<!-- ── Alert Banners for Critical/High generators ────────── -->
+{% for card in gen_cards %}
+  {% if card.prediction %}
+    {% set risk = card.prediction.risk_level %}
+    {% if risk == 'CRITICAL' %}
+    <div class="alert-banner critical mb-20">
+      <span class="alert-icon">🚨</span>
+      <div>
+        <div class="alert-title">CRITICAL — {{ card.generator.name }} needs immediate attention!</div>
+        <div class="alert-body">Health score: {{ card.prediction.health_score|round(0)|int }}/100. Do not operate until inspected.
+          <a href="{{ url_for('main.run_prediction_view', gen_id=card.generator.id) }}" style="color:var(--red);font-weight:700;"> View full report →</a>
+        </div>
+      </div>
+    </div>
+    {% elif risk == 'HIGH RISK' %}
+    <div class="alert-banner high mb-20">
+      <span class="alert-icon">⚠️</span>
+      <div>
+        <div class="alert-title">HIGH RISK — {{ card.generator.name }} requires maintenance within 48 hours</div>
+        <div class="alert-body">Health score: {{ card.prediction.health_score|round(0)|int }}/100.
+          <a href="{{ url_for('main.run_prediction_view', gen_id=card.generator.id) }}" style="color:var(--orange);font-weight:700;"> View details →</a>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  {% endif %}
+{% endfor %}
+
+<!-- ── Generator Cards ──────────────────────────────────── -->
+<div class="grid-2 mb-28">
+{% for card in gen_cards %}
+{% set gen  = card.generator %}
+{% set pred = card.prediction %}
+
+<div class="card gen-card fade-up" id="gen-card-{{ gen.id }}">
+
+  {% if pred %}
+    {% set risk = pred.risk_level %}
+    {% if risk == 'HEALTHY' %}   <div class="gen-card-risk-bar risk-healthy"></div>
+    {% elif risk == 'MODERATE' %}<div class="gen-card-risk-bar risk-moderate"></div>
+    {% elif risk == 'HIGH RISK' %}<div class="gen-card-risk-bar risk-high"></div>
+    {% else %}                   <div class="gen-card-risk-bar risk-critical"></div>
+    {% endif %}
+  {% else %}
+    <div class="gen-card-risk-bar" style="background:var(--border);"></div>
+  {% endif %}
+
+  <div class="card-header">
+    <div>
+      <h3>{{ gen.name }}</h3>
+      <div class="text-sm text-muted mt-4">
+        {{ gen.kva_rating }} KVA {{ gen.fuel_type }}
+        {% if gen.make %} • {{ gen.make }}{% endif %}
+        {% if gen.age_years %} • {{ gen.age_years }} yr old{% endif %}
+      </div>
+    </div>
+    {% if pred %}
+      {% set risk = pred.risk_level %}
+      {% if risk == 'HEALTHY' %}<span class="badge badge-healthy">🟢 Healthy</span>
+      {% elif risk == 'MODERATE' %}<span class="badge badge-moderate">🟡 Moderate</span>
+      {% elif risk == 'HIGH RISK' %}<span class="badge badge-high">🟠 High Risk</span>
+      {% else %}<span class="badge badge-critical">🔴 Critical</span>
+      {% endif %}
+    {% else %}
+      <span class="badge badge-info">⚪ No Prediction</span>
+    {% endif %}
+  </div>
+
+  <div class="card-body">
+    {% if pred %}
+    <div class="flex-gap gap-lg" style="flex-wrap:wrap;">
+      <!-- Health Score Gauge -->
+      <div class="health-ring-container" style="width:110px;height:65px;flex-shrink:0;">
+        <canvas id="gauge-{{ gen.id }}" width="110" height="65"
+                data-score="{{ pred.health_score }}"
+                data-risk="{{ pred.risk_level }}"></canvas>
+        <div class="health-score-text" style="top:55%">
+          <div class="score-number
+            {% if pred.risk_level == 'HEALTHY' %}text-emerald
+            {% elif pred.risk_level == 'MODERATE' %}text-amber
+            {% elif pred.risk_level == 'HIGH RISK' %}text-orange
+            {% else %}text-red{% endif %}">
+            {{ pred.health_score|round(0)|int }}
+          </div>
+          <div class="score-label">/100</div>
+        </div>
+      </div>
+
+      <!-- Key Indicators -->
+      <div style="flex:1;min-width:160px;">
+        <div class="grid-2" style="gap:8px;">
+          <div>
+            <div class="text-xs text-muted">Fuel Efficiency</div>
+            <div class="font-bold
+              {% if pred.fer <= 1.1 %}text-emerald
+              {% elif pred.fer <= 1.3 %}text-amber
+              {% else %}text-red{% endif %}">
+              {{ ((pred.fer - 1) * 100)|round(0)|int|abs }}%
+              {% if pred.fer <= 1.1 %}✓{% elif pred.fer <= 1.3 %}↑ over{% else %}⚠️ over{% endif %}
+            </div>
+          </div>
+          <div>
+            <div class="text-xs text-muted">Maint. Overdue</div>
+            <div class="font-bold
+              {% if pred.mos < 0.7 %}text-emerald
+              {% elif pred.mos < 1.0 %}text-amber
+              {% else %}text-red{% endif %}">
+              {{ (pred.mos * 100)|round(0)|int }}%
+            </div>
+          </div>
+          <div>
+            <div class="text-xs text-muted">Days to Service</div>
+            <div class="font-bold
+              {% if pred.days_to_service > 14 %}text-emerald
+              {% elif pred.days_to_service > 3 %}text-amber
+              {% else %}text-red{% endif %}">
+              {% if pred.days_to_service == 0 %}Now!{% else %}{{ pred.days_to_service }} days{% endif %}
+            </div>
+          </div>
+          <div>
+            <div class="text-xs text-muted">Log Entries</div>
+            <div class="font-bold text-muted">{{ card.logs_count }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="text-xs text-muted mt-8">
+      Last prediction: {{ pred.computed_at.strftime('%d %b %Y, %H:%M') }} UTC
+    </div>
+
+    {% else %}
+    <div class="empty-state" style="padding:30px 0;">
+      <div class="empty-icon" style="font-size:2rem;">📋</div>
+      <h3 style="font-size:0.95rem;margin-bottom:6px;">No prediction yet</h3>
+      <p style="font-size:0.8rem;">Add a daily log entry, then run your first prediction.</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="card-footer flex-between" style="flex-wrap:wrap;gap:8px;">
+    <div class="flex-gap gap-sm">
+      <a href="{{ url_for('main.add_log', gen_id=gen.id) }}" class="btn btn-ghost btn-sm" id="btn-log-{{ gen.id }}">📝 Log Day</a>
+      <a href="{{ url_for('main.run_prediction_view', gen_id=gen.id) }}" class="btn btn-primary btn-sm" id="btn-predict-{{ gen.id }}">🔮 Predict</a>
+    </div>
+    <a href="{{ url_for('main.generator_detail', gen_id=gen.id) }}" class="btn btn-ghost btn-sm">Details →</a>
+  </div>
+
+</div>
+{% endfor %}
+</div>
+
+<!-- ── Quick Stats ──────────────────────────────────────── -->
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-icon">🔌</div>
+    <div class="stat-value">{{ gen_cards|length }}</div>
+    <div class="stat-label">Generators Monitored</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">📝</div>
+    <div class="stat-value">{{ gen_cards|sum(attribute='logs_count') }}</div>
+    <div class="stat-label">Total Log Entries</div>
+  </div>
+  {% set has_critical = gen_cards|selectattr('prediction')|selectattr('prediction.risk_level', 'equalto', 'CRITICAL')|list %}
+  {% set has_high     = gen_cards|selectattr('prediction')|selectattr('prediction.risk_level', 'equalto', 'HIGH RISK')|list %}
+  <div class="stat-card">
+    <div class="stat-icon">🚨</div>
+    <div class="stat-value" style="color:{% if has_critical %}var(--red){% elif has_high %}var(--orange){% else %}var(--emerald){% endif %};">
+      {{ has_critical|length + has_high|length }}
+    </div>
+    <div class="stat-label">Generators Need Attention</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">📅</div>
+    <div class="stat-value">{{ 2 - gen_cards|length }}</div>
+    <div class="stat-label">Generator Slots Available</div>
+  </div>
+</div>
+
+{% endif %}
+
+<!-- Initialise gauge charts via inline JS using Chart.js -->
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  {% for card in gen_cards %}
+  {% if card.prediction %}
+  (function() {
+    const canvas = document.getElementById('gauge-{{ card.generator.id }}');
+    if (!canvas || typeof Chart === 'undefined') return;
+    const score = {{ card.prediction.health_score }};
+    const risk  = '{{ card.prediction.risk_level }}';
+    const clr = { 'HEALTHY':'#10b981','MODERATE':'#f59e0b','HIGH RISK':'#f97316','CRITICAL':'#ef4444' };
+    new Chart(canvas, {
+      type: 'doughnut',
+      data: {
+        datasets: [{
+          data: [score, 100 - score],
+          backgroundColor: [clr[risk] || '#94a3b8', 'rgba(255,255,255,0.04)'],
+          borderWidth: 0, borderRadius: 4,
+        }]
+      },
+      options: {
+        cutout: '75%', rotation: -90, circumference: 180,
+        responsive: false, plugins: { legend: { display: false }, tooltip: { enabled: false } },
+        animation: { duration: 900, easing: 'easeOutQuart' }
+      }
+    });
+  })();
+  {% endif %}
+  {% endfor %}
+});
+</script>
+
+{% endblock %}

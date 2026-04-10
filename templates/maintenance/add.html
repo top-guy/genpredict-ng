@@ -1,0 +1,73 @@
+{% extends 'app_shell.html' %}
+{% block title %}Record Maintenance — {{ gen.name }} — GenPredict NG{% endblock %}
+{% block page_title %}Record Maintenance{% endblock %}
+{% block page_subtitle %}Log a service or repair event for {{ gen.name }}{% endblock %}
+
+{% block content %}
+<div style="max-width:640px;">
+  <div class="card card-glass">
+    <div class="card-header">
+      <h3>🔧 Maintenance Record — {{ gen.name }}</h3>
+    </div>
+    <div class="card-body">
+      <form method="POST" action="{{ url_for('main.add_maintenance', gen_id=gen.id) }}" id="maint-form">
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label" for="maintenance_date">Service Date <span class="required">*</span></label>
+            <input type="date" id="maintenance_date" name="maintenance_date" class="form-control"
+                   value="{{ today }}" max="{{ today }}" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="maintenance_type">Service Type</label>
+            <select id="maintenance_type" name="maintenance_type" class="form-control">
+              {% for mt in maint_types %}
+              <option value="{{ mt }}">{{ mt }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="description">Description / Details</label>
+          <textarea id="description" name="description" class="form-control" rows="3"
+                    placeholder="Parts replaced, observations, technician notes..."></textarea>
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label" for="cost_naira">Cost (₦)</label>
+            <input type="number" id="cost_naira" name="cost_naira" class="form-control"
+                   placeholder="e.g. 15000" min="0" step="100">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="technician">Technician Name</label>
+            <input type="text" id="technician" name="technician" class="form-control"
+                   placeholder="e.g. Emeka's Repairs" maxlength="100">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="next_due_date">Next Service Due (optional)</label>
+          <input type="date" id="next_due_date" name="next_due_date" class="form-control">
+          <div class="form-hint">Set a reminder date for the next scheduled service</div>
+        </div>
+
+        <div class="alert-banner moderate mb-20">
+          <span class="alert-icon">💡</span>
+          <div class="alert-body">
+            After saving, run a new prediction to update your generator's Maintenance Overdue Score.
+            Logging maintenance dates significantly improves prediction accuracy.
+          </div>
+        </div>
+
+        <div class="flex-gap gap-md">
+          <button type="submit" class="btn btn-primary" id="btn-save-maint">🔧 Save Record</button>
+          <a href="{{ url_for('main.generator_detail', gen_id=gen.id) }}" class="btn btn-ghost">Cancel</a>
+        </div>
+
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

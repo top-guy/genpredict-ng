@@ -1,0 +1,120 @@
+{% extends 'base.html' %}
+{% block title %}Create Account — GenPredict NG{% endblock %}
+
+{% block body %}
+<div class="auth-shell">
+  <div class="auth-card card-glass" style="max-width:500px;">
+
+    <div class="auth-logo">
+      <div class="logo-mark">⚡</div>
+      <h2>Create Your Account</h2>
+      <p>Start monitoring your generator health — free forever</p>
+    </div>
+
+    <form method="POST" action="{{ url_for('auth.register') }}" id="register-form" novalidate>
+
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label" for="username">Username <span class="required">*</span></label>
+          <input type="text" id="username" name="username" class="form-control"
+                 placeholder="johndoe" required autocomplete="username"
+                 minlength="3" maxlength="80">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="email">Email <span class="required">*</span></label>
+          <input type="email" id="email" name="email" class="form-control"
+                 placeholder="you@example.com" required autocomplete="email">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="business_name">Business / Household Name</label>
+        <input type="text" id="business_name" name="business_name" class="form-control"
+               placeholder="e.g. Chukwu Electronics, My Home Lagos"
+               maxlength="150">
+        <div class="form-hint">Optional — helps personalize your reports</div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="phone">Phone Number</label>
+        <input type="tel" id="phone" name="phone" class="form-control"
+               placeholder="+234 800 000 0000" maxlength="20">
+      </div>
+
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label" for="password">Password <span class="required">*</span></label>
+          <input type="password" id="password" name="password" class="form-control"
+                 placeholder="Min. 8 characters" required minlength="8"
+                 autocomplete="new-password">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="confirm_password">Confirm Password <span class="required">*</span></label>
+          <input type="password" id="confirm_password" name="confirm_password" class="form-control"
+                 placeholder="Repeat password" required
+                 autocomplete="new-password">
+        </div>
+      </div>
+
+      <!-- Password strength -->
+      <div class="mb-20">
+        <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:5px;">Password strength</div>
+        <div style="height:4px;background:var(--bg-2);border-radius:2px;">
+          <div id="pwd-strength-bar" style="height:100%;width:0;border-radius:2px;transition:width 0.3s,background 0.3s;"></div>
+        </div>
+        <div id="pwd-strength-text" style="font-size:0.7rem;margin-top:4px;color:var(--text-dim);"></div>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-full btn-lg" id="register-submit">
+        Create Account →
+      </button>
+
+    </form>
+
+    <div class="divider"></div>
+
+    <div class="text-center" style="font-size:0.85rem;color:var(--text-muted);">
+      Already have an account?
+      <a href="{{ url_for('auth.login') }}" style="font-weight:600;">Sign in</a>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// Password strength indicator
+document.getElementById('password').addEventListener('input', function() {
+  const v = this.value;
+  const bar = document.getElementById('pwd-strength-bar');
+  const txt = document.getElementById('pwd-strength-text');
+  let strength = 0;
+  if (v.length >= 8)  strength++;
+  if (/[A-Z]/.test(v)) strength++;
+  if (/[0-9]/.test(v)) strength++;
+  if (/[^A-Za-z0-9]/.test(v)) strength++;
+
+  const configs = [
+    { w:'0%',   bg:'transparent',      t:'' },
+    { w:'25%',  bg:'var(--red)',        t:'Weak' },
+    { w:'50%',  bg:'var(--orange)',     t:'Fair' },
+    { w:'75%',  bg:'var(--amber)',      t:'Good' },
+    { w:'100%', bg:'var(--emerald)',    t:'Strong 💪' },
+  ];
+  const c = configs[strength] || configs[0];
+  bar.style.width = c.w;
+  bar.style.background = c.bg;
+  txt.textContent = c.t;
+  txt.style.color = c.bg;
+});
+
+// Confirm password match
+document.getElementById('confirm_password').addEventListener('input', function() {
+  const pwd = document.getElementById('password').value;
+  if (this.value && this.value !== pwd) {
+    this.style.borderColor = 'var(--red)';
+  } else {
+    this.style.borderColor = '';
+  }
+});
+</script>
+{% endblock %}

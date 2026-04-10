@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="GenPredict NG — AI-powered predictive maintenance for fuel generators.">
+  <title>{% block title %}GenPredict NG{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js" defer></script>
+  <script src="{{ url_for('static', filename='js/main.js') }}" defer></script>
+  {% block head %}{% endblock %}
+</head>
+<body>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+<div class="flash-container" aria-live="polite">
+  {% for category, message in messages %}
+  {% set icon_map = {'success':'✅','danger':'❌','warning':'⚠️','info':'ℹ️'} %}
+  <div class="flash-msg {{ category }}" role="alert">
+    <span class="flash-icon">{{ icon_map.get(category, 'ℹ️') }}</span>
+    <span class="flash-text">{{ message }}</span>
+    <button class="flash-close" aria-label="Dismiss">✕</button>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endwith %}
+
+{% block body %}{% endblock %}
+
+</body>
+</html>

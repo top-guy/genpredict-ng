@@ -1,0 +1,101 @@
+{% extends 'app_shell.html' %}
+{% block title %}Prediction History — {{ gen.name }} — GenPredict NG{% endblock %}
+{% block page_title %}Prediction History{% endblock %}
+{% block page_subtitle %}All health predictions for {{ gen.name }}{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('main.run_prediction_view', gen_id=gen.id) }}" class="btn btn-primary btn-sm">🔮 New Prediction</a>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h3>📈 {{ gen.name }} — Prediction History</h3>
+    <span class="text-sm text-muted">{{ preds.total }} predictions</span>
+  </div>
+
+  {% if preds.items %}
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Date & Time</th>
+          <th>Health Score</th>
+          <th>Risk Level</th>
+          <th>UII</th>
+          <th>FER</th>
+          <th>MOS</th>
+          <th>AALS</th>
+          <th>FFR</th>
+          <th>Service</th>
+          <th>Logs Used</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for pred in preds.items %}
+        <tr>
+          <td class="text-sm">{{ pred.computed_at.strftime('%d %b %Y %H:%M') }}</td>
+          <td>
+            <span class="font-bold"
+                  style="color:{% if pred.risk_level=='HEALTHY' %}var(--emerald){% elif pred.risk_level=='MODERATE' %}var(--amber){% elif pred.risk_level=='HIGH RISK' %}var(--orange){% else %}var(--red){% endif %};">
+              {{ pred.health_score|round(1) }}
+            </span>
+          </td>
+          <td>
+            {% if pred.risk_level == 'HEALTHY' %}<span class="badge badge-healthy">🟢 Healthy</span>
+            {% elif pred.risk_level == 'MODERATE' %}<span class="badge badge-moderate">🟡 Moderate</span>
+            {% elif pred.risk_level == 'HIGH RISK' %}<span class="badge badge-high">🟠 High Risk</span>
+            {% else %}<span class="badge badge-critical">🔴 Critical</span>
+            {% endif %}
+          </td>
+          <td class="mono text-sm">{{ '%.3f'|format(pred.uii) }}</td>
+          <td class="mono text-sm">{{ '%.3f'|format(pred.fer) }}</td>
+          <td class="mono text-sm">{{ '%.3f'|format(pred.mos) }}</td>
+          <td class="mono text-sm">{{ '%.3f'|format(pred.aals) }}</td>
+          <td class="mono text-sm">{{ '%.3f'|format(pred.ffr) }}</td>
+          <td class="text-sm">
+            {% if pred.days_to_service == 0 %}
+            <span class="text-red font-bold">Now!</span>
+            {% else %}
+            {{ pred.days_to_service }} days
+            {% endif %}
+          </td>
+          <td class="text-muted text-sm">{{ pred.logs_used }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  {% if preds.pages > 1 %}
+  <div class="pagination">
+    {% if preds.has_prev %}
+    <a href="{{ url_for('main.prediction_history', gen_id=gen.id, page=preds.prev_num) }}" class="page-link">← Prev</a>
+    {% endif %}
+    {% for p in preds.iter_pages() %}
+      {% if p %}
+      <a href="{{ url_for('main.prediction_history', gen_id=gen.id, page=p) }}"
+         class="page-link {% if p == preds.page %}active{% endif %}">{{ p }}</a>
+      {% else %}
+      <span class="page-link" style="cursor:default;">…</span>
+      {% endif %}
+    {% endfor %}
+    {% if preds.has_next %}
+    <a href="{{ url_for('main.prediction_history', gen_id=gen.id, page=preds.next_num) }}" class="page-link">Next →</a>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% else %}
+  <div class="card-body">
+    <div class="empty-state">
+      <div class="empty-icon">🔮</div>
+      <h3>No predictions yet</h3>
+      <p>Add daily log entries and run your first prediction.</p>
+      <a href="{{ url_for('main.run_prediction_view', gen_id=gen.id) }}" class="btn btn-primary">🔮 Run First Prediction</a>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

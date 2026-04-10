@@ -1,0 +1,25 @@
+{
+  "feature_names": [
+    "UII",
+    "FER",
+    "MOS",
+    "AALS",
+    "FFR"
+  ],
+  "classes": [
+    "CRITICAL",
+    "HEALTHY",
+    "HIGH RISK",
+    "MODERATE"
+  ],
+  "n_samples": 15000,
+  "regressor_mae": 1.905,
+  "feature_importances": {
+    "UII": 0.050284140630614586,
+    "FER": 0.2776493433966163,
+    "MOS": 0.5881012134538914,
+    "AALS": 0.053885738860450075,
+    "FFR": 0.030079563658427625
+  },
+  "note": "Trained on synthetic data. Retrain with real outcomes as they accumulate."
+}

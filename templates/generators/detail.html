@@ -1,0 +1,237 @@
+{% extends 'app_shell.html' %}
+{% block title %}{{ gen.name }} — GenPredict NG{% endblock %}
+{% block page_title %}{{ gen.name }}{% endblock %}
+{% block page_subtitle %}{{ gen.kva_rating }} KVA {{ gen.fuel_type }} • {{ gen.make or 'Generic' }} {{ gen.model or '' }} • {{ gen.age_years }} yr old{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('main.add_log', gen_id=gen.id) }}" class="btn btn-ghost btn-sm" id="btn-log">📝 Log Today</a>
+<a href="{{ url_for('main.run_prediction_view', gen_id=gen.id) }}" class="btn btn-primary btn-sm" id="btn-predict">🔮 Run Prediction</a>
+{% endblock %}
+
+{% block content %}
+
+<!-- ── Quick Action Row ─────────────────────────────────── -->
+<div class="flex-gap gap-md mb-28" style="flex-wrap:wrap;">
+  <a href="{{ url_for('main.add_log', gen_id=gen.id) }}" class="btn btn-ghost btn-sm">📝 Add Daily Log</a>
+  <a href="{{ url_for('main.log_history', gen_id=gen.id) }}" class="btn btn-ghost btn-sm">📋 Log History</a>
+  <a href="{{ url_for('main.add_maintenance', gen_id=gen.id) }}" class="btn btn-ghost btn-sm">🔧 Record Maintenance</a>
+  <a href="{{ url_for('main.prediction_history', gen_id=gen.id) }}" class="btn btn-ghost btn-sm">📈 Prediction History</a>
+  {% if gen.latest_prediction %}
+  <a href="{{ url_for('main.download_pdf_report', gen_id=gen.id) }}" class="btn btn-ghost btn-sm">📄 PDF Report</a>
+  <a href="{{ url_for('main.whatsapp_share', gen_id=gen.id) }}" class="btn btn-whatsapp btn-sm" target="_blank">📲 WhatsApp</a>
+  {% endif %}
+  <a href="{{ url_for('main.edit_generator', gen_id=gen.id) }}" class="btn btn-ghost btn-sm">✏️ Edit</a>
+</div>
+
+<div class="grid-2">
+  <!-- ── Generator Info ──────────────────────────────────── -->
+  <div class="card">
+    <div class="card-header"><h3>Generator Info</h3></div>
+    <div class="card-body">
+      <table style="width:100%;font-size:0.87rem;">
+        <tr><td class="text-muted" style="padding:6px 0;">Name</td><td class="font-bold">{{ gen.name }}</td></tr>
+        <tr><td class="text-muted" style="padding:6px 0;">Make</td><td>{{ gen.make or '—' }}</td></tr>
+        <tr><td class="text-muted" style="padding:6px 0;">Model</td><td>{{ gen.model or '—' }}</td></tr>
+        <tr><td class="text-muted" style="padding:6px 0;">KVA Rating</td><td class="font-bold text-amber">{{ gen.kva_rating }} KVA</td></tr>
+        <tr><td class="text-muted" style="padding:6px 0;">Fuel Type</td><td>{{ gen.fuel_type }}</td></tr>
+        <tr><td class="text-muted" style="padding:6px 0;">Year Purchased</td><td>{{ gen.purchase_year or '—' }}</td></tr>
+        <tr><td class="text-muted" style="padding:6px 0;">Age</td><td>{{ gen.age_years }} year(s)</td></tr>
+        <tr><td class="text-muted" style="padding:6px 0;">Last Maintenance</td>
+            <td>{{ gen.last_maintenance_date.strftime('%d %b %Y') if gen.last_maintenance_date else '⚠️ Not recorded' }}</td></tr>
+        <tr><td class="text-muted" style="padding:6px 0;">Total Log Entries</td><td>{{ gen.daily_logs|length }}</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Latest Prediction & Gauge ────────────────────────── -->
+  {% if gen.latest_prediction %}
+  {% set pred = gen.latest_prediction %}
+  <div class="card">
+    <div class="card-header">
+      <h3>Latest Health Score</h3>
+      <span class="text-xs text-muted">{{ pred.computed_at.strftime('%d %b %Y') }}</span>
+    </div>
+    <div class="card-body text-center">
+      <div style="position:relative;width:180px;height:100px;margin:0 auto;">
+        <canvas id="healthGauge" width="180" height="100"
+                data-score="{{ pred.health_score }}"
+                data-risk="{{ pred.risk_level }}"></canvas>
+        <div class="health-score-text" style="top:60%">
+          <div id="healthScoreNum" class="score-number
+            {% if pred.risk_level == 'HEALTHY' %}text-emerald
+            {% elif pred.risk_level == 'MODERATE' %}text-amber
+            {% elif pred.risk_level == 'HIGH RISK' %}text-orange
+            {% else %}text-red{% endif %}">0</div>
+          <div class="score-label">/100</div>
+        </div>
+      </div>
+
+      <!-- Risk badge -->
+      <div class="mt-12">
+        {% if pred.risk_level == 'HEALTHY' %}
+          <span class="badge badge-healthy" style="font-size:0.85rem;padding:6px 16px;">🟢 HEALTHY</span>
+        {% elif pred.risk_level == 'MODERATE' %}
+          <span class="badge badge-moderate" style="font-size:0.85rem;padding:6px 16px;">🟡 MODERATE</span>
+        {% elif pred.risk_level == 'HIGH RISK' %}
+          <span class="badge badge-high" style="font-size:0.85rem;padding:6px 16px;">🟠 HIGH RISK</span>
+        {% else %}
+          <span class="badge badge-critical" style="font-size:0.85rem;padding:6px 16px;">🔴 CRITICAL</span>
+        {% endif %}
+      </div>
+
+      <div class="mt-12 text-sm text-muted">
+        Days to next service:
+        <strong class="
+          {% if pred.days_to_service == 0 %}text-red
+          {% elif pred.days_to_service <= 7 %}text-orange
+          {% else %}text-emerald{% endif %}">
+          {% if pred.days_to_service == 0 %}Immediate!{% else %}{{ pred.days_to_service }} days{% endif %}
+        </strong>
+      </div>
+
+      <a href="{{ url_for('main.run_prediction_view', gen_id=gen.id) }}"
+         class="btn btn-primary btn-sm btn-full mt-12" id="btn-new-predict">
+        🔮 Run New Prediction
+      </a>
+    </div>
+  </div>
+  {% else %}
+  <div class="card">
+    <div class="card-header"><h3>Health Score</h3></div>
+    <div class="card-body">
+      <div class="empty-state" style="padding:20px 0;">
+        <div class="empty-icon">🔮</div>
+        <h3 style="font-size:0.95rem;">No prediction yet</h3>
+        <p style="font-size:0.8rem;">Add a daily log then run your first prediction.</p>
+        <a href="{{ url_for('main.add_log', gen_id=gen.id) }}"
+           class="btn btn-primary btn-sm mt-12" id="btn-goto-log">📝 Add First Log</a>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- ── 30-Day Health Trend ─────────────────────────────────── -->
+<div class="card mt-20">
+  <div class="card-header">
+    <h3>📈 Health Score Trend</h3>
+    <span class="text-xs text-muted">Prediction history over time</span>
+  </div>
+  <div class="card-body" style="height:220px;position:relative;">
+    <canvas id="trendChart" data-gen-id="{{ gen.id }}" style="position:absolute;inset:0;width:100%!important;height:100%!important;"></canvas>
+  </div>
+</div>
+
+<!-- ── Daily Usage Chart ────────────────────────────────────── -->
+<div class="card mt-20">
+  <div class="card-header">
+    <h3>📊 Daily Usage (Last 14 Days)</h3>
+    <a href="{{ url_for('main.log_history', gen_id=gen.id) }}" class="btn btn-ghost btn-sm">View All →</a>
+  </div>
+  <div class="card-body" style="height:220px;position:relative;">
+    <canvas id="logsChart" data-gen-id="{{ gen.id }}" style="position:absolute;inset:0;width:100%!important;height:100%!important;"></canvas>
+  </div>
+</div>
+
+<div class="grid-2 mt-20">
+  <!-- ── Recent Logs ─────────────────────────────────────── -->
+  <div class="card">
+    <div class="card-header">
+      <h3>Recent Daily Logs</h3>
+      <a href="{{ url_for('main.add_log', gen_id=gen.id) }}" class="btn btn-primary btn-sm">+ Add</a>
+    </div>
+    {% if recent_logs %}
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th><th>Hours</th><th>Load</th><th>Fuel (L)</th><th>Faults</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for log in recent_logs %}
+          <tr>
+            <td>{{ log.log_date.strftime('%d %b %y') }}</td>
+            <td>{{ log.usage_hours }}h</td>
+            <td>
+              <span style="color:{% if log.load_level < 60 %}var(--emerald){% elif log.load_level < 80 %}var(--amber){% else %}var(--red){% endif %};">
+                {{ log.load_level }}%
+              </span>
+            </td>
+            <td>{{ log.fuel_consumed }}L</td>
+            <td>
+              {% if log.fault_count > 0 %}
+              <span class="badge badge-high" style="font-size:0.65rem;">{{ log.fault_count }}</span>
+              {% else %}
+              <span class="text-emerald">—</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="card-body">
+      <div class="empty-state" style="padding:16px 0;">
+        <p>No logs yet. <a href="{{ url_for('main.add_log', gen_id=gen.id) }}">Add your first log →</a></p>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- ── Maintenance Records ─────────────────────────────── -->
+  <div class="card">
+    <div class="card-header">
+      <h3>Maintenance Records</h3>
+      <a href="{{ url_for('main.add_maintenance', gen_id=gen.id) }}" class="btn btn-primary btn-sm">+ Add</a>
+    </div>
+    {% if maintenance %}
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr><th>Date</th><th>Type</th><th>Cost (₦)</th></tr>
+        </thead>
+        <tbody>
+          {% for m in maintenance %}
+          <tr>
+            <td>{{ m.maintenance_date.strftime('%d %b %y') }}</td>
+            <td style="font-size:0.78rem;">{{ m.maintenance_type or '—' }}</td>
+            <td>{% if m.cost_naira %}₦{{ '{:,.0f}'.format(m.cost_naira) }}{% else %}—{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="card-body">
+      <div class="empty-state" style="padding:16px 0;">
+        <p>No maintenance recorded. <a href="{{ url_for('main.add_maintenance', gen_id=gen.id) }}">Record first →</a></p>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ── Danger Zone ─────────────────────────────────────────── -->
+<div class="card mt-20" style="border-color:rgba(239,68,68,0.2);">
+  <div class="card-header" style="border-color:rgba(239,68,68,0.2);">
+    <h3 style="color:var(--red);">⚠️ Danger Zone</h3>
+  </div>
+  <div class="card-body">
+    <div class="flex-between" style="flex-wrap:wrap;gap:12px;">
+      <div>
+        <div class="font-bold">Delete this generator</div>
+        <div class="text-sm text-muted">This will permanently delete all logs, predictions and maintenance records. This cannot be undone.</div>
+      </div>
+      <form method="POST" action="{{ url_for('main.delete_generator', gen_id=gen.id) }}"
+            data-confirm="Are you sure you want to delete '{{ gen.name }}'? All data will be permanently lost.">
+        <button type="submit" class="btn btn-danger btn-sm" id="btn-delete-gen">
+          🗑️ Delete Generator
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
