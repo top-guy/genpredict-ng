@@ -56,7 +56,7 @@ class GenPredictPDF(FPDF):
         self.set_font('Helvetica', 'B', 14)
         self.set_text_color(*AMBER)
         self.set_y(6)
-        self.cell(0, 10, 'GenPredict NG — Generator Health Report', align='C',
+        self.cell(0, 10, 'GenPredict NG - Generator Health Report', align='C',
                   new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         self.set_y(25)
         self.set_text_color(0, 0, 0)
@@ -85,7 +85,9 @@ class GenPredictPDF(FPDF):
         if bold_value:
             self.set_font('Helvetica', 'B', 10)
         self.set_text_color(0, 0, 0)
-        self.cell(0, 7, str(value), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        # Handle em-dash/unicode in strings
+        val_str = str(value).replace('\u2014', '-').replace('\u2013', '-')
+        self.cell(0, 7, val_str, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
     def health_badge(self, score, risk_level):
         r, g, b = _risk_color(risk_level)
@@ -137,7 +139,7 @@ class GenPredictPDF(FPDF):
                       new_x=XPos.RIGHT, new_y=YPos.LAST)
             self.set_text_color(0, 0, 0)
             self.set_font('Helvetica', 'B', 9)
-            self.cell(0, 6, f"  {rec['icon']} {rec['action']}",
+            self.cell(0, 6, f"  * {rec['action']}",
                       new_x=XPos.LMARGIN, new_y=YPos.NEXT)
             self.set_font('Helvetica', 'I', 8)
             self.set_text_color(80, 80, 80)
@@ -160,10 +162,10 @@ def generate_pdf_report(generator, prediction, maintenance_records, logs):
     # ── Cover Info ─────────────────────────────────────────
     pdf.section_title('Generator Information')
     pdf.kv_row('Generator Name',  generator.name)
-    pdf.kv_row('Make / Model',    f"{generator.make or '—'} / {generator.model or '—'}")
+    pdf.kv_row('Make / Model',    f"{generator.make or '-'} / {generator.model or '-'}")
     pdf.kv_row('KVA Rating',      f"{generator.kva_rating} KVA")
-    pdf.kv_row('Fuel Type',       generator.fuel_type or '—')
-    pdf.kv_row('Year of Purchase', generator.purchase_year or '—')
+    pdf.kv_row('Fuel Type',       generator.fuel_type or '-')
+    pdf.kv_row('Year of Purchase', generator.purchase_year or '-')
     pdf.kv_row('Age (Years)',     f"{generator.age_years} year(s)")
     pdf.kv_row('Report Date',     datetime.utcnow().strftime('%d %B %Y'))
 
@@ -227,19 +229,21 @@ def generate_pdf_report(generator, prediction, maintenance_records, logs):
         for rec in maintenance_records[:5]:
             pdf.set_font('Helvetica', 'B', 9)
             pdf.set_text_color(0, 0, 0)
-            date_str = rec.maintenance_date.strftime('%d %b %Y') if rec.maintenance_date else '—'
-            pdf.cell(0, 6, f'{date_str}  —  {rec.maintenance_type or "Service"}',
+            date_str = rec.maintenance_date.strftime('%d %b %Y') if rec.maintenance_date else '-'
+            type_str = (rec.maintenance_type or "Service").replace('\u2014', '-')
+            pdf.cell(0, 6, f'{date_str}  -  {type_str}',
                      new_x=XPos.LMARGIN, new_y=YPos.NEXT)
             if rec.description:
                 pdf.set_font('Helvetica', '', 8)
                 pdf.set_text_color(80, 80, 80)
                 pdf.set_x(20)
-                pdf.multi_cell(0, 5, rec.description,
+                desc_str = rec.description.replace('\u2014', '-').replace('\u2013', '-')
+                pdf.multi_cell(0, 5, desc_str,
                                new_x=XPos.LMARGIN, new_y=YPos.NEXT)
             if rec.cost_naira:
                 pdf.set_font('Helvetica', 'I', 8)
                 pdf.set_x(20)
-                pdf.cell(0, 5, f'Cost: ₦{rec.cost_naira:,.0f}',
+                pdf.cell(0, 5, f'Cost: NGN {rec.cost_naira:,.0f}',
                          new_x=XPos.LMARGIN, new_y=YPos.NEXT)
             pdf.ln(1)
 
