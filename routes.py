@@ -1,7 +1,7 @@
 import json
 from datetime import datetime, date, timedelta
 from flask import (Blueprint, render_template, redirect, url_for,
-                   flash, request, abort, make_response, jsonify)
+                   flash, request, abort, make_response, jsonify, send_file)
 from flask_login import login_required, current_user
 
 from extensions import db
@@ -351,10 +351,12 @@ def download_pdf_report(gen_id):
     pdf_bytes = generate_pdf_report(gen, pred, maintenance, logs)
     filename  = f"genpredict_{gen.name.replace(' ', '_')}_{date.today()}.pdf"
 
-    response = make_response(pdf_bytes.read())
-    response.headers['Content-Type']        = 'application/pdf'
-    response.headers['Content-Disposition'] = f'attachment; filename="{filename}"'
-    return response
+    return send_file(
+        pdf_bytes,
+        mimetype='application/pdf',
+        as_attachment=True,
+        download_name=filename
+    )
 
 
 @main_bp.route('/generators/<int:gen_id>/report/whatsapp')

@@ -280,8 +280,9 @@ def generate_pdf_report(generator, prediction, maintenance_records, logs):
             pdf.ln()
 
     # Output
-    buf = BytesIO()
-    buf.write(pdf.output())
+    # For fpdf2: calling output() without arguments returns bytes
+    pdf_bytes = pdf.output()
+    buf = BytesIO(pdf_bytes)
     buf.seek(0)
     return buf
 
